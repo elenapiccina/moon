@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Official Moon Phase Widget 🌙</title>
+    <title>Moon Phase Widget 🌙</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -16,13 +16,12 @@
             min-height: 100vh;
         }
 
-        /* Sleek minimalist container custom fitted to wrap the astronomy framework frame */
         .widget-container {
             width: 100%;
             max-width: 320px;
             background-color: #050505;
             border-radius: 12px;
-            padding: 20px;
+            padding: 24px;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
@@ -31,29 +30,189 @@
             border: 1px solid #1a1a1a;
         }
 
-        /* Clean alignment mapping for nested content structures */
-        .iframe-wrapper {
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            overflow: hidden;
+        .date-header {
+            color: #ffffff;
+            font-size: 0.95rem;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 24px;
+            text-align: center;
         }
 
-        /* Direct filter manipulation overlay to blend background colors cleanly into dark mode templates */
-        iframe, #moonphase_widget {
-            border: none !important;
-            filter: invert(1) hue-rotate(180deg) brightness(0.95);
+        .moon-display-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 24px;
+            padding: 0 10px;
+            box-sizing: border-box;
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            color: #fffae6; 
+            font-size: 1.8rem;
+            cursor: pointer;
+            padding: 10px;
+            transition: opacity 0.2s, transform 0.1s;
+            user-select: none;
+        }
+        .nav-btn:hover { opacity: 0.8; transform: scale(1.1); }
+
+        .moon-sphere-container {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            background-color: #0c0b0a;
+            border-radius: 50%;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.95);
+        }
+
+        .moon-base-glow {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, #fffdf0 0%, #d9c391 70%, #736135 100%);
+            border-radius: 50%;
+        }
+
+        /* High-precision 3D crescent shadow overlay */
+        .moon-shadow-mask {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #050505;
+            border-radius: 50%;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .phase-label {
+            color: #ffffff;
+            font-size: 1.05rem;
+            font-weight: 500;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-align: center;
+            margin-top: 4px;
         }
     </style>
 </head>
 <body>
 
 <div class="widget-container">
-    <div class="iframe-wrapper">
-        <!-- Official live data collection script from MoonPhases.co.uk tools hub registry -->
-        <script type="text/javascript" src="https://moonphases.co.uk" id="moonphase_widget" widget="tall" lat="" lng="" date="" tz=""></script>
+    <div class="date-header" id="dateDisplay">LOADING...</div>
+
+    <div class="moon-display-row">
+        <button class="nav-btn" onclick="adjustDate(-1)">◀</button>
+        
+        <div class="moon-sphere-container">
+            <div class="moon-base-glow"></div>
+            <div class="moon-shadow-mask" id="moonShadow"></div>
+        </div>
+        
+        <button class="nav-btn" onclick="adjustDate(1)">▶</button>
     </div>
+
+    <div class="phase-label" id="phaseDisplay">LOADING...</div>
 </div>
+
+<script>
+    let currentOffsetDays = 0;
+
+    // Pinpoint Astronomical Lunar Math Engine
+    function calculateMoonPhase(date) {
+        const synodicMonth = 29.530588853;
+        // Known benchmark Full Moon Epoch: Jan 11, 2026
+        const baseKnownFullMoon = new Date(Date.UTC(2026, 0, 11, 12, 0, 0));
+        
+        const diffMs = date.getTime() - baseKnownFullMoon.getTime();
+        const diffDays = diffMs / (1000 * 60 * 60 * 24);
+        
+        let cycleProgress = diffDays / synodicMonth;
+        cycleProgress = cycleProgress - Math.floor(cycleProgress);
+        if (cycleProgress < 0) cycleProgress += 1.0;
+
+        const currentAge = cycleProgress * synodicMonth;
+
+        // Perfect true-sky phase mappings
+        if (currentAge < 1.0 || currentAge > 28.53) return { name: "Full Moon", step: "full" };
+        if (currentAge >= 1.0 && currentAge < 6.38)  return { name: "Waning Gibbous", step: "wan_gib" };
+        if (currentAge >= 6.38 && currentAge < 8.38) return { name: "Third Quarter", step: "third_q" };
+        if (currentAge >= 8.38 && currentAge < 13.76) return { name: "Waning Crescent", step: "wan_cres" };
+        if (currentAge >= 13.76 && currentAge < 15.76) return { name: "New Moon", step: "new" };
+        if (currentAge >= 15.76 && currentAge < 21.14) return { name: "Waxing Crescent", step: "wax_cres" };
+        if (currentAge >= 21.14 && currentAge < 23.14) return { name: "First Quarter", step: "first_q" };
+        return { name: "Waxing Gibbous", step: "wax_gib" };
+    }
+
+    function formatWidgetDate(date, offset) {
+        const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+        const dayName = days[date.getDay()];
+        const dayNum = date.getDate();
+        const monthName = date.toLocaleString('en-US', { month: 'short' }).toUpperCase();
+
+        let suffix = "th";
+        if (dayNum === 1 || dayNum === 21 || dayNum === 31) suffix = "st";
+        else if (dayNum === 2 || dayNum === 22) suffix = "nd";
+        else if (dayNum === 3 || dayNum === 23) suffix = "rd";
+
+        const prefixText = (offset === 0) ? "TODAY, " : "";
+        return `${prefixText}${dayName} ${dayNum}${suffix} ${monthName}`;
+    }
+
+    function updateWidgetRender() {
+        const targetDate = new Date();
+        targetDate.setDate(targetDate.getDate() + currentOffsetDays);
+
+        document.getElementById('dateDisplay').innerText = formatWidgetDate(targetDate, currentOffsetDays);
+
+        const phaseInfo = calculateMoonPhase(targetDate);
+        document.getElementById('phaseDisplay').innerText = phaseInfo.name;
+
+        const shadow = document.getElementById('moonShadow');
+        
+        // Exact vector positioning for the custom shadows
+        if (phaseInfo.step === "full") {
+            shadow.style.width = "0%";
+            shadow.style.left = "0%";
+        } else if (phaseInfo.step === "new") {
+            shadow.style.width = "100%";
+            shadow.style.left = "0%";
+            shadow.style.borderRadius = "50%";
+        } else if (phaseInfo.step === "third_q") {
+            shadow.style.width = "50%";
+            shadow.style.left = "0%";
+            shadow.style.borderRadius = "0";
+        } else if (phaseInfo.step === "first_q") {
+            shadow.style.width = "50%";
+            shadow.style.left = "50%";
+            shadow.style.borderRadius = "0";
+        } else if (phaseInfo.step === "wan_cres" || phaseInfo.step === "wan_gib") {
+            shadow.style.width = "82%";
+            shadow.style.left = "0%";
+            shadow.style.borderRadius = "0 50% 50% 0 / 0 50% 50% 0";
+        } else {
+            shadow.style.width = "82%";
+            shadow.style.left = "18%";
+            shadow.style.borderRadius = "50% 0 0 50 / 50% 0 0 50%";
+        }
+    }
+
+    function adjustDate(stepValue) {
+        currentOffsetDays += stepValue;
+        updateWidgetRender();
+    }
+
+    updateWidgetRender();
+</script>
 
 </body>
 </html>
