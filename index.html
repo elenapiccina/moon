@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moon Phase Widget 🌙</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: transparent;
+            margin: 0;
+            padding: 4px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* Dark editorial frame matching your layout snapshot */
+        .widget-container {
+            width: 100%;
+            max-width: 320px;
+            background-color: #050505;
+            border-radius: 12px;
+            padding: 24px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 1px solid #1a1a1a;
+        }
+
+        /* Top header date title matching image style */
+        .date-header {
+            color: #ffffff;
+            font-size: 0.95rem;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        /* Flex display split matrix for graphic element and arrows navigation controls */
+        .moon-display-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 24px;
+            padding: 0 10px;
+            box-sizing: border-box;
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            color: #EAA9C3; /* Golden matching color from your image */
+            font-size: 1.8rem;
+            cursor: pointer;
+            padding: 10px;
+            transition: opacity 0.2s, transform 0.1s;
+            user-select: none;
+        }
+        .nav-btn:hover { opacity: 0.8; transform: scale(1.1); }
+        .nav-btn:active { transform: scale(0.95); }
+
+        /* Rebuilt pure canvas CSS sphere generator mapping lunar illumination arcs */
+        .moon-sphere-container {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            background-color: #0d0d0d;
+            border-radius: 50%;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.9), 0 0 15px rgba(234,169,195,0.05);
+        }
+
+        .moon-base-glow {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, #fffae6 0%, #e6cc80 70%, #998033 100%);
+            border-radius: 50%;
+            opacity: 0.95;
+            box-shadow: 0 0 20px rgba(230,204,128,0.4);
+        }
+
+        /* Dynamic shadow overlay mask element */
+        .moon-shadow-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #050505;
+            border-radius: 50%;
+            transition: all 0.3s ease-in-out;
+        }
+
+        /* Phase text label at the base matching image structure */
+        .phase-label {
+            color: #ffffff;
+            font-size: 1.05rem;
+            font-weight: 500;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-align: center;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="widget-container">
+    <div class="date-header" id="dateDisplay">TODAY, TUE 8TH SEP</div>
+
+    <div class="moon-display-row">
+        <button class="nav-btn" onclick="adjustDate(-1)" title="Previous Day">◀</button>
+        
+        <div class="moon-sphere-container">
+            <div class="moon-base-glow"></div>
+            <div class="moon-shadow-overlay" id="moonShadow"></div>
+        </div>
+        
+        <button class="nav-btn" onclick="adjustDate(1)" title="Next Day">▶</button>
+    </div>
+
+    <div class="phase-label" id="phaseDisplay">WANING CRESCENT</div>
+</div>
+
+<script>
+    // Keep internal timing states calibrated tracking day steps variables
+    let currentOffsetDays = 0;
+
+    function getMoonPhaseData(date) {
+        // High-precision synodic epoch calendar calculation matching astronomial baselines
+        const lp = 2551443; 
+        const newMoonEpoch = new Date(1970, 0, 7, 20, 35, 0); 
+        
+        let phaseValue = (date.getTime() - newMoonEpoch.getTime()) / 1000;
+        phaseValue = phaseValue / lp;
+        phaseValue = phaseValue - Math.floor(phaseValue); 
+        
+        const ageInDays = phaseValue * 29.53059;
+
+        // Categorize phases strings and determine lighting percentages arcs mapping metrics
+        if (ageInDays < 1.845)   return { name: "New Moon", illum: 0, phase: "new" };
+        if (ageInDays < 5.537)   return { name: "Waxing Crescent", illum: 0.25, phase: "wax_cres" };
+        if (ageInDays < 9.228)   return { name: "First Quarter", illum: 0.50, phase: "first_q" };
+        if (ageInDays < 12.920)  return { name: "Waxing Gibbous", illum: 0.75, phase: "wax_gib" };
+        if (ageInDays < 16.611)  return { name: "Full Moon", illum: 1.00, phase: "full" };
+        if (ageInDays < 20.302)  return { name: "Waning Gibbous", illum: 0.75, phase: "wan_gib" };
+        if (ageInDays < 23.994)  return { name: "Third Quarter", illum: 0.50, phase: "third_q" };
+        if (ageInDays < 27.685)  return { name: "Waning Crescent", illum: 0.25, phase: "wan_cres" };
+        return { name: "New Moon", illum: 0, phase: "new" };
+    }
+
+    function formatWidgetDate(date, offset) {
+        const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+        const months = ['SEP', 'OCT', 'NOV', 'DEC', 'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG'];
+        
+        const dayName = days[date.getDay()];
+        const dayNum = date.getDate();
+        const monthName = date.toLocaleString('en-US', { month: 'short' }).toUpperCase();
+
+        // Calculate suffix strings indicators mapping typography requirements
+        let suffix = "th";
+        if (dayNum === 1 || dayNum === 21 || dayNum === 31) suffix = "st";
+        else if (dayNum === 2 || dayNum === 22) suffix = "nd";
+        else if (dayNum === 3 || dayNum === 23) suffix = "rd";
+
+        const prefixText = (offset === 0) ? "TODAY, " : "";
+        return `${prefixText}${dayName} ${dayNum}${suffix} ${monthName}`;
+    }
+
+    function calculateAndRenderMoonWidget() {
+        const targetDate = new Date();
+        targetDate.setDate(targetDate.getDate() + currentOffsetDays);
+
+        // Update layout structural rows header details 
+        document.getElementById('dateDisplay').innerText = formatWidgetDate(targetDate, currentOffsetDays);
+
+        const phaseInfo = getMoonPhaseData(targetDate);
+        document.getElementById('phaseDisplay').innerText = phaseInfo.name;
+
+        // Render responsive lighting shape vectors using clean shadow shifts masking
+        const shadowOverlay = document.getElementById('moonShadow');
+        
+        // Match specific structural arcs tracking phase mapping rules
+        if (phaseInfo.phase === "full") {
+            shadowOverlay.style.width = "0%";
+            shadowOverlay.style.left = "50%";
+        } else if (phaseInfo.phase === "new") {
+            shadowOverlay.style.width = "100%";
+            shadowOverlay.style.left = "0%";
+            shadowOverlay.style.borderRadius = "50%";
+        } else if (phaseInfo.phase === "first_q") {
+            shadowOverlay.style.width = "50%";
+            shadowOverlay.style.left = "0%";
+            shadowOverlay.style.borderRadius = "0% 0% 0% 0% / 0% 0% 0% 0%";
+        } else if (phaseInfo.phase === "third_q") {
+            shadowOverlay.style.width = "50%";
+            shadowOverlay.style.left = "50%";
+            shadowOverlay.style.borderRadius = "0% 0% 0% 0% / 0% 0% 0% 0%";
+        } else if (phaseInfo.phase === "wan_cres" || phaseInfo.phase === "wan_gib") {
+            // Left curves masking properties mapping rules transitions
+            shadowOverlay.style.width = "75%";
+            shadowOverlay.style.left = "35%";
+            shadowOverlay.style.borderRadius = "40% 50% 50% 40% / 50% 50% 50% 50%";
+        } else {
+            // Right curves properties logic mapping rules variations
+            shadowOverlay.style.width = "75%";
+            shadowOverlay.style.left = "-10%"
+            shadowOverlay.style.borderRadius = "50% 40% 40% 50% / 50% 50% 50% 50%";
+        }
+    }
+
+    function adjustDate(stepValue) {
+        currentOffsetDays += stepValue;
+        calculateAndRenderMoonWidget();
+    }
+
+    // Launch widget render script setup on load metrics configurations
+    calculateAndRenderMoonWidget();
+</script>
+
+</body>
+</html>
