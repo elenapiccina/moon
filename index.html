@@ -3,215 +3,327 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moon Phase Widget 🌙</title>
+    <title>Moon Phase 🌙</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Alice&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: transparent;
+        :root {
+            --bg-glass: rgba(255, 255, 255, 0.90);
+            --border-glass: rgba(255, 255, 255, 0.95);
+            --border-soft: #F4E8EE;
+            
+            /* Quiet Luxury Palette */
+            --pink-accent: #FEE1E7;
+            --pink-dark: #7D2D3E;
+            --pink-subtle: #FFF5F7;
+            
+            --moon-dark: #2A2228;
+            --moon-lit: #FFFBF5;
+            --moon-glow: rgba(254, 225, 231, 0.8);
+            
+            --text-dark: #322527;
+            --text-muted: #8C787B;
+            --shadow-soft: 0 10px 28px rgba(220, 180, 190, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
             margin: 0;
-            padding: 4px;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Alice', Georgia, serif;
+            background-color: transparent;
+            padding: 8px;
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
             min-height: 100vh;
+            color: var(--text-dark);
+            -webkit-font-smoothing: antialiased;
         }
 
         .widget-container {
             width: 100%;
             max-width: 320px;
-            background-color: #050505;
-            border-radius: 12px;
-            padding: 24px;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            border: 1px solid #1a1a1a;
-        }
-
-        .date-header {
-            color: #ffffff;
-            font-size: 0.95rem;
-            font-weight: 600;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            margin-bottom: 24px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid var(--border-glass);
+            border-radius: 20px;
+            padding: 16px 14px;
+            box-shadow: var(--shadow-soft);
+            position: relative;
             text-align: center;
         }
 
-        .moon-display-row {
+        /* Powder Pink Banner */
+        .header-banner {
+            background-color: var(--pink-accent);
+            padding: 9px 12px;
+            border-radius: 12px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            width: 100%;
-            margin-bottom: 24px;
-            padding: 0 10px;
-            box-sizing: border-box;
+            margin-bottom: 14px;
         }
 
-        .nav-btn {
-            background: none;
-            border: none;
-            color: #fffae6; 
-            font-size: 1.8rem;
-            cursor: pointer;
-            padding: 10px;
-            transition: opacity 0.2s, transform 0.1s;
-            user-select: none;
-        }
-        .nav-btn:hover { opacity: 0.8; transform: scale(1.1); }
-
-        .moon-sphere-container {
-            position: relative;
-            width: 120px;
-            height: 120px;
-            background-color: #0c0b0a;
-            border-radius: 50%;
-            overflow: hidden;
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.95);
-        }
-
-        .moon-base-glow {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle, #fffdf0 0%, #d9c391 70%, #736135 100%);
-            border-radius: 50%;
-        }
-
-        /* High-precision 3D crescent shadow overlay */
-        .moon-shadow-mask {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #050505;
-            border-radius: 50%;
-            transition: all 0.2s ease-in-out;
-        }
-
-        .phase-label {
-            color: #ffffff;
-            font-size: 1.05rem;
-            font-weight: 500;
-            letter-spacing: 2px;
+        .header-title {
+            font-size: 0.88rem;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            color: var(--pink-dark);
             text-transform: uppercase;
-            text-align: center;
-            margin-top: 4px;
+        }
+
+        .header-date {
+            font-size: 0.72rem;
+            color: var(--pink-dark);
+            opacity: 0.85;
+        }
+
+        /* Moon Render Canvas */
+        .moon-display-box {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 12px 0;
+            position: relative;
+        }
+
+        .moon-svg {
+            width: 110px;
+            height: 110px;
+            filter: drop-shadow(0 0 12px var(--moon-glow));
+        }
+
+        .phase-title {
+            font-size: 1.15rem;
+            color: var(--text-dark);
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+            font-weight: normal;
+        }
+
+        .phase-subtext {
+            font-size: 0.74rem;
+            color: var(--text-muted);
+            font-style: italic;
+            margin-bottom: 14px;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .stat-card {
+            background: #ffffff;
+            border: 1px solid var(--border-soft);
+            border-radius: 12px;
+            padding: 8px 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .stat-label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 0.88rem;
+            color: var(--pink-dark);
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
 
 <div class="widget-container">
-    <div class="date-header" id="dateDisplay">LOADING...</div>
-
-    <div class="moon-display-row">
-        <button class="nav-btn" onclick="adjustDate(-1)">◀</button>
-        
-        <div class="moon-sphere-container">
-            <div class="moon-base-glow"></div>
-            <div class="moon-shadow-mask" id="moonShadow"></div>
-        </div>
-        
-        <button class="nav-btn" onclick="adjustDate(1)">▶</button>
+    <div class="header-banner">
+        <span class="header-title">MOON PHASE 🌙</span>
+        <span class="header-date" id="currentDateText">Today</span>
     </div>
 
-    <div class="phase-label" id="phaseDisplay">LOADING...</div>
+    <!-- Astronomical Moon Graphic -->
+    <div class="moon-display-box">
+        <svg class="moon-svg" viewBox="0 0 100 100">
+            <defs>
+                <radialGradient id="moonTexture" cx="40%" cy="40%" r="60%">
+                    <stop offset="0%" stop-color="#FFFDF9"/>
+                    <stop offset="70%" stop-color="#F2ECE4"/>
+                    <stop offset="100%" stop-color="#E2D8CC"/>
+                </radialGradient>
+            </defs>
+            <!-- Dark Moon Disk -->
+            <circle cx="50" cy="50" r="40" fill="var(--moon-dark)" />
+            <!-- Illuminated Phase Path -->
+            <path id="moonLitPath" fill="url(#moonTexture)" d="" />
+            <!-- Outer Ring Accent -->
+            <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" />
+        </svg>
+    </div>
+
+    <div class="phase-title" id="phaseName">CALCULATING...</div>
+    <div class="phase-subtext" id="phaseDescription">Lunar Alignment</div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <span class="stat-label">Illumination</span>
+            <span class="stat-value" id="illuminationVal">0%</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Moon Age</span>
+            <span class="stat-value" id="moonAgeVal">0.0 days</span>
+        </div>
+        <div class="stat-card" style="grid-column: span 2;">
+            <span class="stat-label">Next Full Moon In</span>
+            <span class="stat-value" id="nextFullVal">0 days</span>
+        </div>
+    </div>
 </div>
 
 <script>
-    let currentOffsetDays = 0;
+    // High-Precision Astronomical Calculation (Meeus/Conway Algorithm)
+    function calculateMoonPhase(date = new Date()) {
+        const year = date.getUTCFullYear();
+        const month = date.getUTCMonth() + 1;
+        const day = date.getUTCDate();
+        const hours = date.getUTCHours() + date.getUTCMinutes() / 60;
 
-    // Pinpoint Astronomical Lunar Math Engine
-    function calculateMoonPhase(date) {
-        const synodicMonth = 29.530588853;
-        // Known benchmark Full Moon Epoch: Jan 11, 2026
-        const baseKnownFullMoon = new Date(Date.UTC(2026, 0, 11, 12, 0, 0));
+        let y = year;
+        let m = month;
+        if (m <= 2) { y -= 1; m += 12; }
         
-        const diffMs = date.getTime() - baseKnownFullMoon.getTime();
-        const diffDays = diffMs / (1000 * 60 * 60 * 24);
-        
-        let cycleProgress = diffDays / synodicMonth;
-        cycleProgress = cycleProgress - Math.floor(cycleProgress);
-        if (cycleProgress < 0) cycleProgress += 1.0;
+        const A = Math.floor(y / 100);
+        const B = 2 - A + Math.floor(A / 4);
+        const JD = Math.floor(365.25 * (y + 4716)) + Math.floor(30.6001 * (m + 1)) + day + (hours / 24) + B - 1524.5;
+        const d = JD - 2451545.0;
 
-        const currentAge = cycleProgress * synodicMonth;
+        const F = (93.272 + 13.229350 * d) % 360;  
+        const l = (134.963 + 13.064993 * d) % 360; 
+        const D = (297.850 + 12.190749 * d) % 360; 
 
-        // Perfect true-sky phase mappings
-        if (currentAge < 1.0 || currentAge > 28.53) return { name: "Full Moon", step: "full" };
-        if (currentAge >= 1.0 && currentAge < 6.38)  return { name: "Waning Gibbous", step: "wan_gib" };
-        if (currentAge >= 6.38 && currentAge < 8.38) return { name: "Third Quarter", step: "third_q" };
-        if (currentAge >= 8.38 && currentAge < 13.76) return { name: "Waning Crescent", step: "wan_cres" };
-        if (currentAge >= 13.76 && currentAge < 15.76) return { name: "New Moon", step: "new" };
-        if (currentAge >= 15.76 && currentAge < 21.14) return { name: "Waxing Crescent", step: "wax_cres" };
-        if (currentAge >= 21.14 && currentAge < 23.14) return { name: "First Quarter", step: "first_q" };
-        return { name: "Waxing Gibbous", step: "wax_gib" };
-    }
+        // Corrected geocentric phase angle
+        const phaseAngle = D + 6.289 * Math.sin(l * Math.PI / 180) 
+                             - 1.274 * Math.sin((2 * D - l) * Math.PI / 180)
+                             - 0.658 * Math.sin(2 * D * Math.PI / 180)
+                             - 0.214 * Math.sin(2 * l * Math.PI / 180)
+                             - 0.110 * Math.sin(F * Math.PI / 180);
 
-    function formatWidgetDate(date, offset) {
-        const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-        const dayName = days[date.getDay()];
-        const dayNum = date.getDate();
-        const monthName = date.toLocaleString('en-US', { month: 'short' }).toUpperCase();
+        const normalizedPhase = ((phaseAngle % 360) + 360) % 360;
+        const illumination = (1 - Math.cos(normalizedPhase * Math.PI / 180)) / 2;
+        const moonAge = (normalizedPhase / 360) * 29.530588;
 
-        let suffix = "th";
-        if (dayNum === 1 || dayNum === 21 || dayNum === 31) suffix = "st";
-        else if (dayNum === 2 || dayNum === 22) suffix = "nd";
-        else if (dayNum === 3 || dayNum === 23) suffix = "rd";
+        // Phase Naming Boundaries
+        let phaseName = "";
+        let phaseDesc = "";
 
-        const prefixText = (offset === 0) ? "TODAY, " : "";
-        return `${prefixText}${dayName} ${dayNum}${suffix} ${monthName}`;
-    }
-
-    function updateWidgetRender() {
-        const targetDate = new Date();
-        targetDate.setDate(targetDate.getDate() + currentOffsetDays);
-
-        document.getElementById('dateDisplay').innerText = formatWidgetDate(targetDate, currentOffsetDays);
-
-        const phaseInfo = calculateMoonPhase(targetDate);
-        document.getElementById('phaseDisplay').innerText = phaseInfo.name;
-
-        const shadow = document.getElementById('moonShadow');
-        
-        // Exact vector positioning for the custom shadows
-        if (phaseInfo.step === "full") {
-            shadow.style.width = "0%";
-            shadow.style.left = "0%";
-        } else if (phaseInfo.step === "new") {
-            shadow.style.width = "100%";
-            shadow.style.left = "0%";
-            shadow.style.borderRadius = "50%";
-        } else if (phaseInfo.step === "third_q") {
-            shadow.style.width = "50%";
-            shadow.style.left = "0%";
-            shadow.style.borderRadius = "0";
-        } else if (phaseInfo.step === "first_q") {
-            shadow.style.width = "50%";
-            shadow.style.left = "50%";
-            shadow.style.borderRadius = "0";
-        } else if (phaseInfo.step === "wan_cres" || phaseInfo.step === "wan_gib") {
-            shadow.style.width = "82%";
-            shadow.style.left = "0%";
-            shadow.style.borderRadius = "0 50% 50% 0 / 0 50% 50% 0";
+        if (normalizedPhase >= 348.75 || normalizedPhase < 11.25) {
+            phaseName = "NEW MOON";
+            phaseDesc = "New beginnings & quiet reflection";
+        } else if (normalizedPhase >= 11.25 && normalizedPhase < 78.75) {
+            phaseName = "WAXING CRESCENT";
+            phaseDesc = "Setting intentions & growth";
+        } else if (normalizedPhase >= 78.75 && normalizedPhase < 101.25) {
+            phaseName = "FIRST QUARTER";
+            phaseDesc = "Taking action & momentum";
+        } else if (normalizedPhase >= 101.25 && normalizedPhase < 168.75) {
+            phaseName = "WAXING GIBBOUS";
+            phaseDesc = "Refining & building energy";
+        } else if (normalizedPhase >= 168.75 && normalizedPhase < 191.25) {
+            phaseName = "FULL MOON";
+            phaseDesc = "Culmination, clarity & fullness";
+        } else if (normalizedPhase >= 191.25 && normalizedPhase < 258.75) {
+            phaseName = "WANING GIBBOUS";
+            phaseDesc = "Gratitude & sharing wisdom";
+        } else if (normalizedPhase >= 258.75 && normalizedPhase < 281.25) {
+            phaseName = "LAST QUARTER";
+            phaseDesc = "Releasing & letting go";
         } else {
-            shadow.style.width = "82%";
-            shadow.style.left = "18%";
-            shadow.style.borderRadius = "50% 0 0 50 / 50% 0 0 50%";
+            phaseName = "WANING CRESCENT";
+            phaseDesc = "Rest, recovery & surrender";
+        }
+
+        // Days until next Full Moon (180°)
+        let degreesToFull = 180 - normalizedPhase;
+        if (degreesToFull < 0) degreesToFull += 360;
+        const daysToFull = (degreesToFull / 360) * 29.530588;
+
+        return {
+            phaseName,
+            phaseDesc,
+            illuminationPct: Math.round(illumination * 100),
+            moonAge: moonAge.toFixed(1),
+            daysToFull: Math.round(daysToFull),
+            phaseAngle: normalizedPhase
+        };
+    }
+
+    // Dynamic SVG Moon Path Geometry Generator
+    function generateMoonSVGPath(phaseAngle) {
+        const R = 40;
+        const cx = 50, cy = 50;
+        const topY = cy - R;
+        const botY = cy + R;
+
+        const deg = ((phaseAngle % 360) + 360) % 360;
+        const rad = deg * Math.PI / 180;
+        const cosP = Math.cos(rad);
+        const rx = Math.abs(R * cosP);
+
+        if (deg < 180) { // Waxing (Right side illuminated)
+            if (cosP >= 0) { // Crescent
+                return `M ${cx} ${topY} A ${R} ${R} 0 0 1 ${cx} ${botY} A ${rx} ${R} 0 0 0 ${cx} ${topY} Z`;
+            } else { // Gibbous
+                return `M ${cx} ${topY} A ${R} ${R} 0 0 1 ${cx} ${botY} A ${rx} ${R} 0 0 1 ${cx} ${topY} Z`;
+            }
+        } else { // Waning (Left side illuminated)
+            if (cosP < 0) { // Gibbous
+                return `M ${cx} ${topY} A ${R} ${R} 0 0 0 ${cx} ${botY} A ${rx} ${R} 0 0 1 ${cx} ${topY} Z`;
+            } else { // Crescent
+                return `M ${cx} ${topY} A ${R} ${R} 0 0 0 ${cx} ${botY} A ${rx} ${R} 0 0 0 ${cx} ${topY} Z`;
+            }
         }
     }
 
-    function adjustDate(stepValue) {
-        currentOffsetDays += stepValue;
-        updateWidgetRender();
+    function updateMoonWidget() {
+        const now = new Date();
+
+        // Format Today's Date
+        const options = { day: 'numeric', month: 'short' };
+        document.getElementById('currentDateText').innerText = now.toLocaleDateString('en-US', options);
+
+        // Get Moon Metrics
+        const data = calculateMoonPhase(now);
+
+        // Update DOM
+        document.getElementById('phaseName').innerText = data.phaseName;
+        document.getElementById('phaseDescription').innerText = data.phaseDesc;
+        document.getElementById('illuminationVal').innerText = `${data.illuminationPct}%`;
+        document.getElementById('moonAgeVal').innerText = `${data.moonAge} days`;
+        document.getElementById('nextFullVal').innerText = `${data.daysToFull} day${data.daysToFull === 1 ? '' : 's'}`;
+
+        // Render SVG Path
+        const svgPath = generateMoonSVGPath(data.phaseAngle);
+        document.getElementById('moonLitPath').setAttribute('d', svgPath);
     }
 
-    updateWidgetRender();
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', updateMoonWidget);
+    } else {
+        updateMoonWidget();
+    }
 </script>
 
 </body>
